@@ -1,0 +1,296 @@
+<head>
+    <style> body { margin: 0; } </style>
+    <script type="text/javascript" src="../static/js/force-graph.js"></script>
+    <script type="text/javascript" src="../static/js/vt-graph.js"></script>
+</head>
+  
+<body>
+    <br>
+    <div style="text-align: center; color: grey; font-family: courier; font-size: 80%">
+        <b>Seleccionar/Deseleccionar nodo:</b> Click + shiftKey on node  ---  <b>Camino objetivo/Vecinos:</b> Right click on node  ---  <b>Eliminar nodo/subgrupo de un grupo:</b> Drag node<br>
+        <b>Detallar grupo agrupando según el criterio seleccionado:</b> Click + ctrlKey on node  ---  <b>Expandir hijos del nodo en la relación seleccionada:</b> Click + altKey on node<br><br>
+
+        <form action="/" method="get">
+            <div style="color: dimgrey">
+                <label for="graph_id"> Introduzca ID del VT Graph: </label>
+                <input type="text" id="graph_id" name="graph_id" value="" style="width: 25%">
+                <input type="submit" value="Enviar">
+            </div>
+        </form>
+
+        <div style="color: dimgrey">
+            <label for="grouping"> Tipo de agrupamiento al detallar un grupo: </label>
+            <select name="grouping" id="grouping">
+                <option value="single">Sin agrupamiento</option>
+                <option value="link">Por link</option>
+                <option value="type">Por tipo</option>
+                <option value="detections">Por detecciones</option>
+            </select> &nbsp;
+            <button id="separate_button" onclick="switch_separate()">SEPARAR: false</button>
+        </div><br>
+
+        <div style="color: dimgrey">
+            <label for="relationship"> Relación a expandir: </label>
+            <select name="relationship" id="relationship">
+                <option value="all">ALL</option>
+                <option value="bundled_files">Bundled files</option>
+                <option value="caa_records">CAA records</option>
+                <option value="cname_records">CNAME records</option>
+                <option value="collections">Collections</option>
+                <option value="communicating_files">Communicating files</option>
+                <option value="compressed_parents">Compressed parents</option>
+                <option value="contacted_domains">Contacted domains</option>
+                <option value="contacted_ips">Contacted IPs</option>
+                <option value="domains">Domains</option>
+                <option value="downloaded_files">Downloaded files</option>
+                <option value="dropped_files">Dropped files</option>
+                <option value="email_attachments">Email attachments</option>
+                <option value="email_parents">Email parents</option>
+                <option value="embedded_ips">Embedded IPs</option>
+                <option value="embedded_js_files">Embedded JS files</option>
+                <option value="embedded_urls">Embedded URLs</option>
+                <option value="execution_parents">Execution parents</option>
+                <option value="files">Files</option>
+                <option value="historical_ssl_certificates">Historical SSL certificates</option>
+                <option value="historical_whois">Historical whois</option>
+                <option value="inmediate_parent">Inmediate parent</option>
+                <option value="ip_addresses">IP addresses</option>
+                <option value="itw_domains">ITW domains</option>
+                <option value="itw_ips">ITW IPs</option>
+                <option value="itw_urls">ITW URLs</option>
+                <option value="last_serving_ip_address">Last serving IP address</option>
+                <option value="mx_records">MX records</option>
+                <option value="network_location">Network location</option>
+                <option value="NS_records">NS records</option>
+                <option value="overlay_parents">Overlay parents</option>
+                <option value="overlay_children">Overlay children</option>
+                <option value="parent">Parent</option>
+                <option value="pcap_parents">PCAP parents</option>
+                <option value="pe_resource_parents">PE resource parents</option>
+                <option value="pe_resource_children">PE resource children</option>
+                <option value="redirecting_urls">Redirecting URLs</option>
+                <option value="redirects_to">Redirects to</option>
+                <option value="references">References</option>
+                <option value="referrer_files">Referrer files</option>
+                <option value="resolutions">Resolutions</option>
+                <option value="siblings">Siblings</option>
+                <option value="similar_files">Similar files</option>
+                <option value="soa_records">SOA records</option>
+                <option value="subdomains">Subdomains</option>
+                <option value="urls">URLs</option>
+                <option value="urls_for_embedded_js">URLs for embedded JS</option>
+                <option value="urls_related_by_tracker_id">URLs related by tracker ID</option>
+            </select> &nbsp;
+            <label for="max_nodes_per_relationship"> Máx nodes por relación: </label>
+            <input type="text" id="max_nodes_per_relationship" name="max_nodes_per_relationship" value="10" style="width: 2%">
+        </div><br>
+
+        <button id="target_button" onclick="switch_target()">TARGET PATH: false</button>
+        <button id="AND_OR_button" onclick="switch_AND_OR()">INTERSECTION: true</button>
+        <button id="predecessor_button" onclick="switch_predecessor()">PREDECESSORS: true</button>
+        <button id="successor_button" onclick="switch_successor()">SUCCESSORS: true</button>
+        <button id="highlight_button" onclick="switch_highlight()">HIGHLIGHT: false</button>
+        <button id="particles_button" onclick="switch_particles()">PARTICLES: true</button>
+        <button id="clear_selected_button" onclick="clear_selected()">CLEAR SELECTED NODES</button>
+        <button id="group_button" onclick="group(selected_nodes, Graph)">GROUP SELECTED NODES</button>
+
+    </div>
+
+    <div id="graph"></div>
+    <script>
+
+        const NODE_R = 8;
+        const target_mode = { active: false, predecessor: true, successor: true, intersection: true, highlight: false, particles: true, separate: false };
+
+        function switch_separate() {
+            target_mode.separate = !target_mode.separate;
+            document.getElementById('separate_button').innerHTML = 'SEPARAR: ' + target_mode.separate;
+        }
+
+        function switch_target() {
+            target_mode.active = !target_mode.active;
+            document.getElementById('target_button').innerHTML = 'TARGET PATH: ' + target_mode.active;
+        }
+
+        function switch_AND_OR() {
+            target_mode.intersection = !target_mode.intersection;
+            if (target_mode.intersection) document.getElementById('AND_OR_button').innerHTML = 'INTERSECTION: true';
+            else document.getElementById('AND_OR_button').innerHTML = 'UNION: true';
+        }
+
+        function switch_predecessor() {
+            target_mode.predecessor = !target_mode.predecessor;
+            document.getElementById('predecessor_button').innerHTML = 'PREDECESSORS: ' + target_mode.predecessor;
+        }
+
+        function switch_successor() {
+            target_mode.successor = !target_mode.successor;
+            document.getElementById('successor_button').innerHTML = 'SUCCESSORS: ' + target_mode.successor;
+        }
+
+        function switch_highlight() {
+            target_mode.highlight = !target_mode.highlight;
+            document.getElementById('highlight_button').innerHTML = 'HIGHLIGHT: ' + target_mode.highlight;
+        }
+
+        function switch_particles() {
+            target_mode.particles = !target_mode.particles;
+            document.getElementById('particles_button').innerHTML = 'PARTICLES: ' + target_mode.particles;
+        }
+
+        function clear_selected() {
+            selected_nodes.clear();
+        }
+    
+        const elem = document.getElementById('graph');
+    
+        const Graph = ForceGraph()(elem)
+            // .graphData(gData)
+            // Deactivate existing forces
+            //.d3Force('center', null)
+            //.d3Force('charge', null)
+            //.onNodeHover(node => {})
+            .d3Force('grouping', grouping(NODE_R))
+            .nodeRelSize(NODE_R)
+            .onBackgroundClick(event => {
+                Graph.zoomToFit(400);
+            })
+            .onBackgroundRightClick(event => {
+                highlightNodes.clear();
+                highlightLinks.clear();
+                hoverNode = null;
+            })
+            // Click on node: Detalla el grupo, lo selecciona, lo expande o lo centra
+            .onNodeClick((node, event) => {
+                if (event.ctrlKey) {
+                    const selectList = document.getElementById('grouping');
+                    const by = selectList.options[selectList.selectedIndex].value;
+                    detail(node, Graph, by, target_mode.separate);
+                }
+                else if (event.altKey) {
+                    if (node.type !== 'relationship') {
+                        const selectList = document.getElementById('relationship');
+                        const relationship = selectList.options[selectList.selectedIndex].value;
+                        const limit = document.getElementById('max_nodes_per_relationship').value;
+                        expand(node, Graph, relationship, limit);
+                    }
+                }
+                else if (event.shiftKey) {
+                    if (selected_nodes.has(node)) {
+                        selected_nodes.delete(node);
+                        console.log('Clearing node: ' + node.id);
+                    } else {
+                        selected_nodes.add(node);
+                        console.log('Selected node: ' + node.id);
+                    }
+                    hoverNode = null;
+                    highlightNodes.clear();
+                    highlightLinks.clear();
+                } else {
+                    Graph.centerAt(node.x, node.y, 1000);
+                    Graph.zoom(8, 2000);
+                    console.log(node);
+                }
+            })
+            // Right click on node: Muestra el camino objetivo o los vecinos de los grupos seleccionados y el actual
+            .onNodeRightClick((node, event) => {
+                (async () => {
+                    highlightNodes.clear();
+                    highlightLinks.clear();
+                    const { nodes, links } = Graph.graphData();
+                    if (node) {
+                        const aux = target_mode.active ? await path(node, selected_nodes, target_mode) : await neighbours(node, selected_nodes, target_mode);
+                        nodes.forEach(n1 => {
+                            if ([...aux].some(n2 => n1.nodes.has(n2)) && n1.children.size === 0) {
+                                highlightNodes.add(n1);
+                            }
+                        });
+                        links.forEach(link => {
+                            if (highlightNodes.has(link.source) && highlightNodes.has(link.target)) {
+                                highlightLinks.add(link);
+                            }
+                        });
+                    }
+                    hoverNode = node || null;
+                })();
+            })
+            // Drag node: Lo fija y si está en un grupo lo saca de este
+            .onNodeDragEnd(node => {
+                node.fx = node.x;
+                node.fy = node.y;
+                if (node.parent !== null) {
+                    separate_groups(node, Graph);
+                }
+            })
+            // Click on link: Resalta el link y los nodos de los extremos
+            .onLinkClick(link => {
+                highlightNodes.clear();
+                highlightLinks.clear();
+                if (link) {
+                    highlightLinks.add(link);
+                    highlightNodes.add(link.source);
+                    highlightNodes.add(link.target);
+                }
+            })
+            .autoPauseRedraw(false) // Keep redrawing after engine has stopped
+            .linkWidth(link => highlightLinks.has(link) ? 5 : 2)
+            .linkCurvature('curvature')
+            .linkDirectionalArrowLength(5)
+            .linkDirectionalParticles(4)
+            .linkDirectionalParticleWidth(link => highlightLinks.has(link) && target_mode.particles ? 4 : 0)
+            .linkLineDash(link => link.style ? undefined : [3, 3])
+            .linkColor(link => highlightNodes.size !== 0 && !highlightLinks.has(link) && target_mode.highlight ? 'rgba(0, 0, 0, 0.1)' : highlightLinks.has(link) ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)')
+            .nodeCanvasObjectMode(node => 'after')
+            .onRenderFramePre(ctx => {
+                const { nodes, links } = Graph.graphData();
+                nodes.forEach(node => {
+                    if (node.children.size > 0) {
+                        ctx.beginPath();
+                        ctx.arc(node.x, node.y, Math.sqrt(node.val) * NODE_R, 0, 2 * Math.PI, false);
+                        let parent = node.parent;
+                        let opacity = 0.2;
+                        while (parent !== null) {
+                            opacity += 0.1;
+                            parent = parent.parent;
+                        }
+                        opacity = Math.min(opacity, 0.6);
+                        ctx.fillStyle = 'rgba(0, 0, 0, ' + opacity.toFixed(1) + ')';
+                        ctx.fill();
+                    }
+                });
+            })
+            .nodeCanvasObject((node, ctx) => {
+                const size = Math.sqrt(node.val) * NODE_R;
+                if (node === hoverNode || selected_nodes.has(node) || highlightNodes.has(node)) {
+                    ctx.beginPath();
+                    ctx.fillStyle = selected_nodes.has(node) ? 
+                                    (node.children.size === 0 ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 255, 0, 0.2)') : 
+                                    node.children.size === 0 ? 
+                                    (node === hoverNode ? 'rgba(0, 0, 255, 0.8)' : 'rgba(255, 128, 0, 0.8)') :
+                                    (node === hoverNode ? 'rgba(0, 0, 255, 0.2)' : 'rgba(255, 128, 0, 0.2)');
+                    ctx.arc(node.x, node.y, size * 1.4, 0, 2 * Math.PI, false);
+                    ctx.fill();
+                }
+                if ('img' in node.attributes && node.children.size === 0) {
+                    ctx.globalAlpha = (highlightNodes.size !== 0 && !highlightNodes.has(node) && 
+                                      !selected_nodes.has(node) && hoverNode !== node && target_mode.highlight) ? 0.2 : 1;
+                    if (node.type === 'ip_address' && 'country' in node.attributes) {
+                        ctx.drawImage(node.attributes.img, node.x - size, node.y - (size*1.4/2), size*2, size*1.4);
+                    } else {
+                        ctx.drawImage(node.attributes.img, node.x - size, node.y - size, size*2, size*2);
+                    }
+                }
+                if (node.nodes.size > 1) {
+                    ctx.font = '6px Sans-Serif';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(node.nodes.size, node.x + (size*0.8), node.y - (size*0.8));
+                }
+                ctx.globalAlpha = 1;
+            });
+
+        const json = JSON.parse('{{ jsondata | tojson }}');
+        console.log(json);
+        json_to_graph(json, Graph);
+
+    </script>
+</body>
